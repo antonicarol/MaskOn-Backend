@@ -2,6 +2,8 @@ import express from "express";
 import mongoose from "mongoose";
 import Masks from "./models/dbProduct.js";
 import messages from "./messages.js";
+import { sortBySales, sortByPopular, sortByTimeStamp } from "./utils/sort.js";
+import Cors from "cors";
 
 // APP CONFIG
 const app = express();
@@ -13,6 +15,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Headers", "*"),
     next();
 });
+app.use(Cors());
 
 //MONGODHB CONFIG
 const connectionUrl =
@@ -32,11 +35,58 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/masks/all", (req, res) => {
-  Masks.find({}, (err, data) => {
+  Masks.find({ onSale: false }, (err, data) => {
     if (err) {
       res.status(500).send(messages.No_Masks_Found);
     } else {
       res.status(200).send(data);
+    }
+  });
+});
+
+app.get("/api/masks/onSale", (req, res) => {
+  Masks.find({ onSale: true }, (err, data) => {
+    if (err) {
+    } else {
+      res.status(200).send(data);
+    }
+  });
+});
+
+app.get("/api/masks/moreSold", (req, res) => {
+  Masks.find({}, (err, data) => {
+    if (err) {
+      res.status(500).send(err);
+    } else {
+      const sortedMasks = sortBySales(data);
+      console.log(sortedMasks.length);
+      res.status(200).send(sortedMasks);
+    }
+  });
+  //Do a filter by sales and clicks
+});
+
+app.get("/api/masks/morePopular", (req, res) => {
+  Masks.find({}, (err, data) => {
+    if (err) {
+      res.status(500).send(err);
+    } else {
+      const sortedMasks = sortByPopular(data);
+      console.log(sortedMasks.length);
+      res.status(200).send(sortedMasks);
+    }
+  });
+  //Do a filter by sales and clicks
+});
+
+app.get("/api/masks/moreRecent", (req, res) => {
+  Masks.find({}, (err, data) => {
+    if (err) {
+      res.status(500).send(err);
+    } else {
+      const sortedMasks = sortByTimeStamp(data);
+      console.log(sortedMasks.length);
+      res.status(200).send(sortedMasks);
     }
   });
 });
@@ -74,6 +124,18 @@ app.get("/api/masks/:price/lte", (req, res) => {
       res.status(200).send(data);
     }
   });
+});
+
+app.put("/api/masks/currencyExchange/:diff", (req, res) => {
+  const diff = req.params["diff"];
+  Masks.update(
+    {},
+    { $set: { price: price * diff } },
+    { multi: true },
+    (err, data) => {
+      res.send("updated");
+    }
+  );
 });
 
 //#endregion
